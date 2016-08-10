@@ -16,6 +16,14 @@ else ifeq ($(PLATFORM),rpi1)
 	LDFLAGS += -lbcm_host
 	HAVE_DISPMANX = 1
 	DEFS += -DRASPBERRY
+else ifeq ($(PLATFORM),chip-sdl)
+	CPU_FLAGS= -mcpu=cortex-a8 -mfpu=vfpv3 -mfloat-abi=hard
+	MORE_CFLAGS += -DARMV6T2
+	HAVE_SDL_DISPLAY = 1
+else ifeq ($(PLATFORM),chip-gl)
+	CPU_FLAGS= -mcpu=cortex-a8 -mfpu=vfpv3 -mfloat-abi=hard
+	MORE_CFLAGS += -DARMV6T2
+	HAVE_GLES_DISPLAY = 1	
 else ifeq ($(PLATFORM),generic-sdl)
 	# On Raspberry Pi uncomment below line or remove ARMV6T2 define.
 	#CPU_FLAGS= -mcpu=cortex-a7 -mfpu=neon-vfpv4 -mfloat-abi=hard
