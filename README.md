@@ -46,7 +46,13 @@ How to compile on Raspbian Jessie:
 
       make PLATFORM=rpi1
 
+  Or for C.H.I.P. / PocketCHIP without GL drivers 
 
+      make PLATFORM=chip-sdl
+
+  Or for C.H.I.P. / PocketCHIP with GL drivers 
+
+      make PLATFORM=chip-gl
 
 How to compile on Raspbian Whezzy:  
 
@@ -65,3 +71,10 @@ How to compile on Raspbian Whezzy:
 
       make PLATFORM=rpi1 CXX=g++-4.8
 
+  Or for C.H.I.P. / PocketCHIP without GL drivers 
+
+      make PLATFORM=chip-sdl CXX=g++-4.8
+
+  Or for C.H.I.P. / PocketCHIP with GL drivers 
+
+      make PLATFORM=chip-gl CXX=g++-4.8
