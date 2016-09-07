@@ -143,30 +143,28 @@ struct inputdevice_functions inputdevicefunc_mouse = {
   get_mouse_flags
 };
 
-static void setid (struct uae_input_device *uid, int i, int slot, int sub, int port, int evt)
+static void setid (struct uae_input_device *uid, int i, int slot, int sub, int port, int evt, bool gp)
 {
-	uid->eventid[slot][SPARE_SUB_EVENT] = uid->eventid[slot][sub];
-	uid->flags[slot][SPARE_SUB_EVENT] = uid->flags[slot][sub];
-	uid->port[slot][SPARE_SUB_EVENT] = MAX_JPORTS + 1;
-
+	if (gp)
+		inputdevice_sparecopy (&uid[i], slot, 0);
   uid[i].eventid[slot][sub] = evt;
   uid[i].port[slot][sub] = port + 1;
 }
 
-static void setid_af (struct uae_input_device *uid, int i, int slot, int sub, int port, int evt, int af)
+static void setid_af (struct uae_input_device *uid, int i, int slot, int sub, int port, int evt, int af, bool gp)
 {
-  setid (uid, i, slot, sub, port, evt);
+  setid (uid, i, slot, sub, port, evt, gp);
   uid[i].flags[slot][sub] &= ~ID_FLAG_AUTOFIRE_MASK;
   if (af >= JPORT_AF_NORMAL)
     uid[i].flags[slot][sub] |= ID_FLAG_AUTOFIRE;
 }
 
-int input_get_default_mouse (struct uae_input_device *uid, int i, int port, int af)
+int input_get_default_mouse (struct uae_input_device *uid, int i, int port, int af, bool gp)
 {
-  setid (uid, i, ID_AXIS_OFFSET + 0, 0, port, port ? INPUTEVENT_MOUSE2_HORIZ : INPUTEVENT_MOUSE1_HORIZ);
-  setid (uid, i, ID_AXIS_OFFSET + 1, 0, port, port ? INPUTEVENT_MOUSE2_VERT : INPUTEVENT_MOUSE1_VERT);
-  setid_af (uid, i, ID_BUTTON_OFFSET + 0, 0, port, port ? INPUTEVENT_JOY2_FIRE_BUTTON : INPUTEVENT_JOY1_FIRE_BUTTON, af);
-  setid (uid, i, ID_BUTTON_OFFSET + 1, 0, port, port ? INPUTEVENT_JOY2_2ND_BUTTON : INPUTEVENT_JOY1_2ND_BUTTON);
+  setid (uid, i, ID_AXIS_OFFSET + 0, 0, port, port ? INPUTEVENT_MOUSE2_HORIZ : INPUTEVENT_MOUSE1_HORIZ, gp);
+  setid (uid, i, ID_AXIS_OFFSET + 1, 0, port, port ? INPUTEVENT_MOUSE2_VERT : INPUTEVENT_MOUSE1_VERT, gp);
+  setid_af (uid, i, ID_BUTTON_OFFSET + 0, 0, port, port ? INPUTEVENT_JOY2_FIRE_BUTTON : INPUTEVENT_JOY1_FIRE_BUTTON, af, gp);
+  setid (uid, i, ID_BUTTON_OFFSET + 1, 0, port, port ? INPUTEVENT_JOY2_2ND_BUTTON : INPUTEVENT_JOY1_2ND_BUTTON, gp);
 
   if (i == 0)
     return 1;
@@ -259,6 +257,8 @@ int input_get_default_keyboard (int num)
 static int nr_joysticks = 0;
 static char JoystickName[MAX_INPUT_DEVICES][80];
 
+static char IsPS3Controller[MAX_INPUT_DEVICES];
+
 static SDL_Joystick* Joysticktable[MAX_INPUT_DEVICES];
 
 
@@ -283,6 +283,14 @@ static int init_joystick (void)
     strncpy(JoystickName[cpt],SDL_JoystickName(cpt),80);
     printf("Joystick %i : %s\n",cpt,JoystickName[cpt]);
     printf("    Buttons: %i Axis: %i Hats: %i\n",SDL_JoystickNumButtons(Joysticktable[cpt]),SDL_JoystickNumAxes(Joysticktable[cpt]),SDL_JoystickNumHats(Joysticktable[cpt]));
+
+    if (strcmp(JoystickName[cpt],"Sony PLAYSTATION(R)3 Controller") == 0)
+    {
+      printf("    Found a dualshock controller: Activating workaround.\n");
+      IsPS3Controller[cpt] = 1;
+    }
+    else
+      IsPS3Controller[cpt] = 0;
   }
 
   return 1;
@@ -478,6 +486,25 @@ static void read_joystick (void)
       setjoybuttonstate (hostjoyid + 1, 4, (SDL_JoystickGetButton(Joysticktable[hostjoyid], 4) & 1) );
       setjoybuttonstate (hostjoyid + 1, 5, (SDL_JoystickGetButton(Joysticktable[hostjoyid], 5) & 1) );
       setjoybuttonstate (hostjoyid + 1, 6, (SDL_JoystickGetButton(Joysticktable[hostjoyid], 6) & 1) );
+
+      if (IsPS3Controller[hostjoyid])
+      {
+        setjoybuttonstate (hostjoyid + 1, 0, (SDL_JoystickGetButton(Joysticktable[hostjoyid], 13) & 1) );
+        setjoybuttonstate (hostjoyid + 1, 1, (SDL_JoystickGetButton(Joysticktable[hostjoyid], 14) & 1) );
+
+        // Simulate a top with button 4
+        if ( SDL_JoystickGetButton(Joysticktable[hostjoyid], 4))
+           setjoystickstate (hostjoyid + 1, 1, -32767, 32767);
+        // Simulate a right with button 5
+        if ( SDL_JoystickGetButton(Joysticktable[hostjoyid], 5))
+           setjoystickstate (hostjoyid + 1, 0, 32767, 32767);
+        // Simulate a bottom with button 6
+        if ( SDL_JoystickGetButton(Joysticktable[hostjoyid], 6))
+           setjoystickstate (hostjoyid + 1, 1, 32767, 32767);
+        // Simulate a left with button 7
+        if ( SDL_JoystickGetButton(Joysticktable[hostjoyid], 7))
+           setjoystickstate (hostjoyid + 1, 0, -32767, 32767);
+      }
     }
 }
 
@@ -489,30 +516,28 @@ struct inputdevice_functions inputdevicefunc_joystick = {
 	get_joystick_flags
 };
 
-int input_get_default_joystick (struct uae_input_device *uid, int num, int port, int af, int mode)
+int input_get_default_joystick (struct uae_input_device *uid, int num, int port, int af, int mode, bool gp)
 {
   int h, v;
 
   h = port ? INPUTEVENT_JOY2_HORIZ : INPUTEVENT_JOY1_HORIZ;;
   v = port ? INPUTEVENT_JOY2_VERT : INPUTEVENT_JOY1_VERT;
 
-  setid (uid, num, ID_AXIS_OFFSET + 0, 0, port, h);
-  setid (uid, num, ID_AXIS_OFFSET + 1, 0, port, v);
+  setid (uid, num, ID_AXIS_OFFSET + 0, 0, port, h, gp);
+  setid (uid, num, ID_AXIS_OFFSET + 1, 0, port, v, gp);
 
-  setid_af (uid, num, ID_BUTTON_OFFSET + 0, 0, port, port ? INPUTEVENT_JOY2_FIRE_BUTTON : INPUTEVENT_JOY1_FIRE_BUTTON, af);
-  setid (uid, num, ID_BUTTON_OFFSET + 1, 0, port, port ? INPUTEVENT_JOY2_2ND_BUTTON : INPUTEVENT_JOY1_2ND_BUTTON);
-  setid (uid, num, ID_BUTTON_OFFSET + 2, 0, port, port ? INPUTEVENT_JOY2_3RD_BUTTON : INPUTEVENT_JOY1_3RD_BUTTON);
+  setid_af (uid, num, ID_BUTTON_OFFSET + 0, 0, port, port ? INPUTEVENT_JOY2_FIRE_BUTTON : INPUTEVENT_JOY1_FIRE_BUTTON, af, gp);
+  setid (uid, num, ID_BUTTON_OFFSET + 1, 0, port, port ? INPUTEVENT_JOY2_2ND_BUTTON : INPUTEVENT_JOY1_2ND_BUTTON, gp);
+  setid (uid, num, ID_BUTTON_OFFSET + 2, 0, port, port ? INPUTEVENT_JOY2_3RD_BUTTON : INPUTEVENT_JOY1_3RD_BUTTON, gp);
 
   if (mode == JSEM_MODE_JOYSTICK_CD32) {
-    setid_af (uid, num, ID_BUTTON_OFFSET + 0, 0, port, port ? INPUTEVENT_JOY2_CD32_RED : INPUTEVENT_JOY1_CD32_RED, af);
-    setid_af (uid, num, ID_BUTTON_OFFSET + 0, 1, port, port ? INPUTEVENT_JOY2_FIRE_BUTTON : INPUTEVENT_JOY1_FIRE_BUTTON, af);
-    setid (uid, num, ID_BUTTON_OFFSET + 1, 0, port, port ? INPUTEVENT_JOY2_CD32_BLUE : INPUTEVENT_JOY1_CD32_BLUE);
-    setid (uid, num, ID_BUTTON_OFFSET + 1, 1, port, port ? INPUTEVENT_JOY2_2ND_BUTTON : INPUTEVENT_JOY1_2ND_BUTTON);
-    setid (uid, num, ID_BUTTON_OFFSET + 2, 0, port, port ? INPUTEVENT_JOY2_CD32_GREEN : INPUTEVENT_JOY1_CD32_GREEN);
-    setid (uid, num, ID_BUTTON_OFFSET + 3, 0, port, port ? INPUTEVENT_JOY2_CD32_YELLOW : INPUTEVENT_JOY1_CD32_YELLOW);
-    setid (uid, num, ID_BUTTON_OFFSET + 4, 0, port, port ? INPUTEVENT_JOY2_CD32_RWD : INPUTEVENT_JOY1_CD32_RWD);
-    setid (uid, num, ID_BUTTON_OFFSET + 5, 0, port, port ? INPUTEVENT_JOY2_CD32_FFW : INPUTEVENT_JOY1_CD32_FFW);
-    setid (uid, num, ID_BUTTON_OFFSET + 6, 0, port, port ? INPUTEVENT_JOY2_CD32_PLAY : INPUTEVENT_JOY1_CD32_PLAY);
+    setid_af (uid, num, ID_BUTTON_OFFSET + 0, 0, port, port ? INPUTEVENT_JOY2_CD32_RED : INPUTEVENT_JOY1_CD32_RED, af, gp);
+    setid (uid, num, ID_BUTTON_OFFSET + 1, 0, port, port ? INPUTEVENT_JOY2_CD32_BLUE : INPUTEVENT_JOY1_CD32_BLUE, gp);
+    setid (uid, num, ID_BUTTON_OFFSET + 2, 0, port, port ? INPUTEVENT_JOY2_CD32_GREEN : INPUTEVENT_JOY1_CD32_GREEN, gp);
+    setid (uid, num, ID_BUTTON_OFFSET + 3, 0, port, port ? INPUTEVENT_JOY2_CD32_YELLOW : INPUTEVENT_JOY1_CD32_YELLOW, gp);
+    setid (uid, num, ID_BUTTON_OFFSET + 4, 0, port, port ? INPUTEVENT_JOY2_CD32_RWD : INPUTEVENT_JOY1_CD32_RWD, gp);
+    setid (uid, num, ID_BUTTON_OFFSET + 5, 0, port, port ? INPUTEVENT_JOY2_CD32_FFW : INPUTEVENT_JOY1_CD32_FFW, gp);
+    setid (uid, num, ID_BUTTON_OFFSET + 6, 0, port, port ? INPUTEVENT_JOY2_CD32_PLAY : INPUTEVENT_JOY1_CD32_PLAY, gp);
   }
   if (num == 0) {
     return 1;
