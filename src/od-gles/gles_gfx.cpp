@@ -61,8 +61,7 @@ int mouseMoving = 0;
 int fcounter = 0;
 int doStylusRightClick = 0;
 
-static unsigned long previous_synctime = 0;
-static unsigned long next_synctime = 0;
+static long next_synctime = 0;
 
 
 unsigned char current_resource_amigafb = 0;
@@ -138,11 +137,18 @@ static void open_screen(struct uae_prefs *p)
   }
 
 
+  if(Dummy_prSDLScreen)
+  { // y.f. 2016-10-13 : free the previous screen surface every time, 
+    // so we can have fullscreen while running and windowed while in config window.
+   // Apparently, something somewhere is resetting the screen.
+	SDL_FreeSurface(Dummy_prSDLScreen);
+	Dummy_prSDLScreen = NULL;
+  }
 
   if(Dummy_prSDLScreen == NULL )
   {
     const SDL_VideoInfo* videoInfo = SDL_GetVideoInfo ();
-    printf("DispmanX: Current resolution: %d x %d %d bpp\n",videoInfo->current_w, videoInfo->current_h, videoInfo->vfmt->BitsPerPixel);
+    printf("Current resolution: %d x %d %d bpp\n",videoInfo->current_w, videoInfo->current_h, videoInfo->vfmt->BitsPerPixel);
     //Dummy_prSDLScreen = SDL_SetVideoMode(videoInfo->current_w,videoInfo->current_h,16,SDL_SWSURFACE |SDL_FULLSCREEN);
     Dummy_prSDLScreen = SDL_SetVideoMode(800,480,16,SDL_SWSURFACE );
   }
@@ -267,7 +273,7 @@ void flush_screen ()
     }
   }
 
-  unsigned long start = read_processor_time();
+  long start = read_processor_time();
   //if(start < next_synctime && next_synctime - start > time_per_frame - 1000)
   //  usleep((next_synctime - start) - 1000);
 
@@ -276,15 +282,12 @@ void flush_screen ()
 
   last_synctime = read_processor_time();
   
-  if(last_synctime - next_synctime > time_per_frame - 1000 || next_synctime < start)
-    adjust_idletime(0);
+  if(last_synctime - next_synctime > time_per_frame * (1 + currprefs.gfx_framerate) - (long)1000)
+    adjust_idletime(-1);
   else
-    adjust_idletime(next_synctime - start);
+    adjust_idletime(last_synctime - start);
   
-  if(last_synctime - next_synctime > time_per_frame - 5000)
-    next_synctime = last_synctime + time_per_frame * (1 + currprefs.gfx_framerate);
-  else
-    next_synctime = next_synctime + time_per_frame * (1 + currprefs.gfx_framerate);
+  next_synctime = last_synctime + time_per_frame * (1 + currprefs.gfx_framerate);
 
 	init_row_map();
 

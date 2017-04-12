@@ -35,9 +35,6 @@ static SDL_Surface *current_screenshot = NULL;
 static int x_size_table[MAX_SCREEN_MODES] = { 640, 640, 720, 800, 800, 960, 1024, 1280, 1280, 1920 };
 static int y_size_table[MAX_SCREEN_MODES] = { 400, 480, 400, 480, 600, 540,  768,  720,  800, 1080 };
 
-static int red_bits, green_bits, blue_bits;
-static int red_shift, green_shift, blue_shift;
-
 struct PicassoResolution *DisplayModes;
 struct MultiDisplay Displays[MAX_DISPLAYS];
 
@@ -54,16 +51,9 @@ static void CreateScreenshot(void);
 static int save_thumb(char *path);
 int delay_savestate_frame = 0;
 
-int justClicked = 0;
-int mouseMoving = 0;
-int fcounter = 0;
-int doStylusRightClick = 0;
-
 int DispManXElementpresent = 0;
 
-static unsigned long previous_synctime = 0;
-static unsigned long next_synctime = 0;
-
+static long next_synctime = 0;
 
 uae_sem_t vsync_wait_sem;
 
@@ -80,14 +70,24 @@ VC_RECT_T       blit_rect;
 
 unsigned char current_resource_amigafb = 0;
 
+unsigned char need_wait_dispmanx_semaphore = 0;
+long start;
+
+
 void vsync_callback(unsigned int a, void* b)
 {
-	//vsync_timing=SDL_GetTicks();
-	//vsync_frequency = vsync_timing - old_time;
-	//old_time = vsync_timing;
-	//need_frameskip =  ( vsync_frequency > 31 ) ? (need_frameskip+1) : need_frameskip;
-	//printf("d: %i", vsync_frequency     );
-	uae_sem_post (&vsync_wait_sem);
+  // Here we are synchronized with VSync
+  // next_synctime is what we were expected as sync time.
+  last_synctime = read_processor_time();
+  // Check if we miss a frame (with a margin of 1000 cycles)
+  if(last_synctime - next_synctime > time_per_frame * (1 + currprefs.gfx_framerate) - (long)1000 )
+    adjust_idletime(-1);
+  else
+    adjust_idletime(last_synctime - start);
+  // Update next synctime with current sync.
+  next_synctime = last_synctime + time_per_frame * (1 + currprefs.gfx_framerate);
+
+  uae_sem_post (&vsync_wait_sem);
 }
 
 
@@ -357,12 +357,6 @@ void flush_screen ()
 {
     //SDL_UnlockSurface (prSDLScreen);
 
-    //if (show_inputmode)
-    //{
-    //    inputmode_redraw();	
-    //}
-
-
     if (savestate_state == STATE_DOSAVE)
     {
     if(delay_savestate_frame > 0)
@@ -375,10 +369,17 @@ void flush_screen ()
     }
   }
 
-  unsigned long start = read_processor_time();
+  //start = read_processor_time();
   //if(start < next_synctime && next_synctime - start > time_per_frame - 1000)
   //  usleep((next_synctime - start) - 1000);
   //SDL_Flip(prSDLScreen);
+
+  if (need_wait_dispmanx_semaphore ==1)
+  {
+	need_wait_dispmanx_semaphore = 0;
+	start = read_processor_time();
+	uae_sem_wait (&vsync_wait_sem);
+  }
 
 
 	if (current_resource_amigafb == 1)
@@ -409,18 +410,7 @@ void flush_screen ()
 
 		vc_dispmanx_update_submit(dispmanxupdate,vsync_callback,NULL);
 	}
-
-  last_synctime = read_processor_time();
-  
-  if(last_synctime - next_synctime > time_per_frame - 1000 || next_synctime < start)
-    adjust_idletime(0);
-  else
-    adjust_idletime(next_synctime - start);
-  
-  if(last_synctime - next_synctime > time_per_frame - 5000)
-    next_synctime = last_synctime + time_per_frame * (1 + currprefs.gfx_framerate);
-  else
-    next_synctime = next_synctime + time_per_frame * (1 + currprefs.gfx_framerate);
+	need_wait_dispmanx_semaphore = 1;
 
 	init_row_map();
 
@@ -429,8 +419,9 @@ void flush_screen ()
 
 void black_screen_now(void)
 {
-	SDL_FillRect(Dummy_prSDLScreen,NULL,0);
-	SDL_Flip(Dummy_prSDLScreen);
+        SDL_FillRect(prSDLScreen,NULL,0);
+	SDL_Flip(prSDLScreen);
+	flush_screen();
 }
 
 
@@ -535,7 +526,7 @@ int graphics_init(bool mousecapture)
 {
 	int i,j;
 
-	uae_sem_init (&vsync_wait_sem, 0, 1);
+	uae_sem_init (&vsync_wait_sem, 0, 0);
 
 	graphics_subinit ();
 
@@ -678,7 +669,8 @@ int picasso_palette (void)
     int r = picasso96_state.CLUT[i].Red;
     int g = picasso96_state.CLUT[i].Green;
     int b = picasso96_state.CLUT[i].Blue;
-  	uae_u32 v = CONVERT_RGB(r << 16 | g << 8 | b);
+    int value = (r << 16 | g << 8 | b);
+    uae_u32 v = CONVERT_RGB(value);
 	  if (v !=  picasso_vidinfo.clut[i]) {
 	     picasso_vidinfo.clut[i] = v;
 	     changed = 1;

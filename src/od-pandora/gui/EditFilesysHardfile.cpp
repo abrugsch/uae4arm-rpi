@@ -270,32 +270,32 @@ static void EditFilesysHardfileLoop(void)
       {
         switch(event.key.keysym.sym)
         {
-          case SDLK_ESCAPE:
+          case VK_ESCAPE:
             dialogFinished = true;
             break;
             
-          case SDLK_UP:
+          case VK_UP:
             if(HandleNavigation(DIRECTION_UP))
               continue; // Don't change value when enter ComboBox -> don't send event to control
             break;
             
-          case SDLK_DOWN:
+          case VK_DOWN:
             if(HandleNavigation(DIRECTION_DOWN))
               continue; // Don't change value when enter ComboBox -> don't send event to control
             break;
 
-          case SDLK_LEFT:
+          case VK_LEFT:
             if(HandleNavigation(DIRECTION_LEFT))
               continue; // Don't change value when enter Slider -> don't send event to control
             break;
             
-          case SDLK_RIGHT:
+          case VK_RIGHT:
             if(HandleNavigation(DIRECTION_RIGHT))
               continue; // Don't change value when enter Slider -> don't send event to control
             break;
 
-          case SDLK_PAGEDOWN:
-          case SDLK_HOME:
+          case VK_X:
+          case VK_A:
             event.key.keysym.sym = SDLK_RETURN;
             gui_input->pushInput(event); // Fire key down
             event.type = SDL_KEYUP;  // and the key up
@@ -323,7 +323,7 @@ static void EditFilesysHardfileLoop(void)
 bool EditFilesysHardfile(int unit_no)
 {
   struct mountedinfo mi;
-  struct uaedev_config_info *uci;
+  struct uaedev_config_data *uci;
   std::string strdevname, strroot;
   char tmp[32];
     
@@ -334,25 +334,29 @@ bool EditFilesysHardfile(int unit_no)
 
   if(unit_no >= 0)
   {
+    struct uaedev_config_info *ci;
+
     uci = &changed_prefs.mountconfig[unit_no];
+    ci = &uci->ci;
     get_filesys_unitconfig(&changed_prefs, unit_no, &mi);
-    strdevname.assign(uci->devname);
+
+    strdevname.assign(ci->devname);
     txtDevice->setText(strdevname);
-    strroot.assign(uci->rootdir);
+    strroot.assign(ci->rootdir);
     txtPath->setText(strroot);
     fileSelected = true;
 
-    chkReadWrite->setSelected(!uci->readonly);
-    chkAutoboot->setSelected(uci->bootpri != -128);
-    snprintf(tmp, 32, "%d", uci->bootpri >= -127 ? uci->bootpri : -127);
+    chkReadWrite->setSelected(!ci->readonly);
+    chkAutoboot->setSelected(ci->bootpri != BOOTPRI_NOAUTOBOOT);
+    snprintf(tmp, 32, "%d", ci->bootpri >= -127 ? ci->bootpri : -127);
     txtBootPri->setText(tmp);
-    snprintf(tmp, 32, "%d", uci->surfaces);
+    snprintf(tmp, 32, "%d", ci->surfaces);
     txtSurfaces->setText(tmp);
-    snprintf(tmp, 32, "%d", uci->reserved);
+    snprintf(tmp, 32, "%d", ci->reserved);
     txtReserved->setText(tmp);
-    snprintf(tmp, 32, "%d", uci->sectors);
+    snprintf(tmp, 32, "%d", ci->sectors);
     txtSectors->setText(tmp);
-    snprintf(tmp, 32, "%d", uci->blocksize);
+    snprintf(tmp, 32, "%d", ci->blocksize);
     txtBlocksize->setText(tmp);
     
     check_rdb(strroot.c_str());
@@ -377,16 +381,26 @@ bool EditFilesysHardfile(int unit_no)
   
   if(dialogResult)
   {
+    struct uaedev_config_info ci;
     int bp = tweakbootpri(atoi(txtBootPri->getText().c_str()), chkAutoboot->isSelected() ? 1 : 0, 0);
     extractPath((char *) txtPath->getText().c_str(), currentDir);
+
+    uci_set_defaults(&ci, false);
+    strcpy(ci.devname, (char *) txtDevice->getText().c_str());
+    strcpy(ci.rootdir, (char *) txtPath->getText().c_str());
+    ci.type = UAEDEV_HDF;
+    ci.readonly = !chkReadWrite->isSelected();
+    ci.sectors = atoi(txtSectors->getText().c_str());
+    ci.surfaces = atoi(txtSurfaces->getText().c_str());
+    ci.reserved = atoi(txtReserved->getText().c_str());
+    ci.blocksize = atoi(txtBlocksize->getText().c_str());
+    ci.bootpri = bp;
     
-    uci = add_filesys_config(&changed_prefs, unit_no, (char *) txtDevice->getText().c_str(), 
-      0, (char *) txtPath->getText().c_str(), !chkReadWrite->isSelected(), 
-      0, atoi(txtSectors->getText().c_str()), atoi(txtSurfaces->getText().c_str()), 
-      atoi(txtReserved->getText().c_str()), atoi(txtBlocksize->getText().c_str()), 
-      bp, 0, 0, 0, 0, 0, 0);
-    if (uci)
-    	hardfile_do_disk_change (uci, 1);
+    uci = add_filesys_config(&changed_prefs, unit_no, &ci);
+    if (uci) {
+  		struct hardfiledata *hfd = get_hardfile_data (uci->configoffset);
+      hardfile_media_change (hfd, &ci, true, false);
+    }
   }
 
   ExitEditFilesysHardfile();

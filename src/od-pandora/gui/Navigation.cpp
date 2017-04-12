@@ -25,23 +25,22 @@ static NavigationMap navMap[] =
 {
 //  active              move left         move right        move up             move down
 // main_window
-  { "Paths",            "SystemROMs",     "SystemROMs",     "Reset",            "Configurations" },
-  { "Configurations",   "ConfigList",     "ConfigList",     "Paths",            "CPU and FPU" },
-  { "CPU and FPU",      "7 Mhz",          "68000",          "Configurations",   "Chipset" },
-  { "Chipset",          "Fast copper",    "OCS",            "CPU and FPU",      "ROM" },
-  { "ROM",              "MainROM",        "cboMainROM",     "Chipset",          "RAM" },
-  { "RAM",              "Chipmem",        "Chipmem",        "ROM",              "Floppy drives" },
-  { "Floppy drives",    "cmdSel0",        "DF0:",           "RAM",              "Hard drives / CD" },
-  { "Hard drives / CD", "cmdCreateHDF",   "cmdAddDir",      "Floppy drives",    "Display" },
-  { "Display",          "sldWidth",       "sldWidth",       "Hard drives / CD", "Sound" },
-  { "Sound",            "sndDisable",     "sndDisable",     "Display",          "Input" },
-  { "Input",            "cboPort0",       "cboPort0",       "Sound",            "Miscellaneous" },
-  { "Miscellaneous",    "StatusLine",     "StatusLine",     "Input",            "Savestates" },
-  { "Savestates",       "State0",         "State0",         "Miscellaneous",    "Reset" },
-  { "Reset",            "Start",          "Quit",           "Savestates",       "Paths" },
-  { "Quit",             "Reset",          "Restart",        "Savestates",       "Paths" },
-  { "Restart",          "Quit",           "Start",          "Savestates",       "Paths" },
-  { "Start",            "Restart",        "Reset",          "Savestates",       "Paths" },
+    { "Paths",            "SystemROMs",     "SystemROMs",     "Reset",            "Configurations" },
+    { "Configurations",   "ConfigList",     "ConfigList",     "Paths",            "CPU and FPU" },
+    { "CPU and FPU",      "7 Mhz",          "68000",          "Configurations",   "Chipset" },
+    { "Chipset",          "Fast copper",    "OCS",            "CPU and FPU",      "ROM" },
+    { "ROM",              "MainROM",        "cboMainROM",     "Chipset",          "RAM" },
+    { "RAM",              "Chipmem",        "Chipmem",        "ROM",              "Floppy drives" },
+    { "Floppy drives",    "cmdSel0",        "DF0:",           "RAM",              "Hard drives / CD" },
+    { "Hard drives / CD", "cmdCreateHDF",   "cmdAddDir",      "Floppy drives",    "Display" },
+    { "Display",          "sldWidth",       "sldWidth",       "Hard drives / CD", "Sound" },
+    { "Sound",            "sndDisable",     "sndDisable",     "Display",          "Input" },
+    { "Input",            "cboPort0",       "cboPort0",       "Sound",            "Miscellaneous" },
+    { "Miscellaneous",    "StatusLine",     "StatusLine",     "Input",            "Savestates" },
+  { "Savestates", "State0", "State0", "Miscellaneous", "Reset" },
+  { "Reset", "Start", "Quit", "Savestates", "Paths" },
+  { "Quit", "Reset", "Start", "Savestates", "Paths" },
+  { "Start", "Quit", "Reset", "Savestates", "Paths" },
 
 // PanelPaths
   { "SystemROMs",     "Paths",          "Paths",          "RescanROMs",     "ConfigPath" },
@@ -160,12 +159,12 @@ static NavigationMap navMap[] =
   { "Frameskip",      "Display",        "Display",        "sldVertPos",     "sldWidth" },
 #else
 // PanelDisplay
-  { "sldWidth",       "Display",               "",               "Frameskip",      "sldHeight" },
-  { "sldHeight",      "Display",               "",               "sldWidth",       "sldVertPos" },
-  { "sldVertPos",     "Display",               "",               "sldHeight",      "FSRatio" },
-  { "FSRatio",     "Display",               "",               "sldVertPos",      "4by3Ratio" },  
-  { "4by3Ratio",     "Display",        "Display",               "FSRatio",      "Frameskip" },  
-  { "Frameskip",      "Display",        "Display",        "4by3Ratio",     "sldWidth" },
+    { "sldWidth",       "",               "",               "Frameskip",      "sldHeight" },
+    { "sldHeight",      "",               "",               "sldWidth",       "sldVertPos" },
+    { "sldVertPos",     "",               "",               "sldHeight",      "FSRatio" },
+    { "FSRatio",     "",               "",               "sldVertPos",      "4by3Ratio" },
+    { "4by3Ratio",     "Display",        "Display",               "FSRatio",      "Frameskip" },
+    { "Frameskip",      "Display",        "Display",        "4by3Ratio",     "sldWidth" },
 #endif
 
 //PanelSound
@@ -202,11 +201,13 @@ static NavigationMap navMap[] =
   { "cboRight",       "cboLeft",        "Input",          "cboDown",        "cboPort0" },
 
 // PanelMisc
-  { "StatusLine",     "Miscellaneous",  "Miscellaneous",  "BSDSocket",      "HideIdle" },
-  { "HideIdle",       "Miscellaneous",  "Miscellaneous",  "StatusLine",     "ShowGUI" },
-  { "ShowGUI",        "Miscellaneous",  "Miscellaneous",  "HideIdle",      "BSDSocket" },
-  { "BSDSocket",      "Miscellaneous",  "Miscellaneous",  "ShowGUI",      "Status Line" },
-  
+    { "StatusLine",     "Miscellaneous",  "Miscellaneous",  "BSDSocket",      "HideIdle" },
+    { "HideIdle",       "Miscellaneous",  "Miscellaneous",  "StatusLine",     "ShowGUI" },
+    { "ShowGUI",        "Miscellaneous",  "Miscellaneous",  "HideIdle",      "BSDSocket" },
+    { "BSDSocket",      "Miscellaneous",  "Miscellaneous",  "ShowGUI",       "numlock" },
+	{ "numlock",		"Miscellaneous",	"scrolllock",	"",					""},
+	{ "scrolllock",		"numlock",			"",				"",					""},
+
 // PanelSavestate
   { "State0",         "Savestates",     "Savestates",     "LoadState",      "State1" },
   { "State1",         "Savestates",     "Savestates",     "State0",         "State2" },
@@ -299,6 +300,11 @@ bool HandleNavigation(int direction)
                   bFoundEnabled = true;
                 else
                   activeName = searchFor;
+              }
+              else
+              {
+                bFoundEnabled = true;
+                break;
               }
             }
             break;

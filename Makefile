@@ -14,8 +14,9 @@ else ifeq ($(PLATFORM),rpi1)
 	CPU_FLAGS += -mcpu=arm1176jzf-s -mfpu=vfp -mfloat-abi=hard
 	MORE_CFLAGS += -DCAPSLOCK_DEBIAN_WORKAROUND
 	LDFLAGS += -lbcm_host
-	HAVE_DISPMANX = 1
 	DEFS += -DRASPBERRY
+	HAVE_DISPMANX = 1
+	USE_PICASSO96 = 1
 else ifeq ($(PLATFORM),generic-sdl)
 	# On Raspberry Pi uncomment below line or remove ARMV6T2 define.
 	#CPU_FLAGS= -mcpu=cortex-a7 -mfpu=neon-vfpv4 -mfloat-abi=hard
@@ -25,6 +26,8 @@ else ifeq ($(PLATFORM),gles)
 	# For Raspberry Pi uncomment the two below lines
 	#LDFLAGS += -lbcm_host
 	#CPU_FLAGS= -mcpu=cortex-a7 -mfpu=neon-vfpv4 -mfloat-abi=hard
+	# Uncomment below line for activating shader support. It's very slown on Allwinner.
+	#MORE_CFLAGS += -DSHADER_SUPPORT
 	MORE_CFLAGS += -DARMV6T2
 	HAVE_GLES_DISPLAY = 1
 	HAVE_NEON = 1
@@ -49,7 +52,7 @@ PANDORA=1
 SDL_CFLAGS = `sdl-config --cflags`
 
 DEFS +=  `xml2-config --cflags`
-DEFS += -DCPU_arm -DARM_ASSEMBLY -DARMV6_ASSEMBLY -DGP2X -DPANDORA
+DEFS += -DCPU_arm -DARM_ASSEMBLY -DARMV6_ASSEMBLY -DPANDORA
 DEFS += -DWITH_INGAME_WARNING
 DEFS += -DROM_PATH_PREFIX=\"./\" -DDATA_PREFIX=\"./data/\" -DSAVE_PREFIX=\"./saves/\"
 DEFS += -DUSE_SDL
@@ -64,7 +67,7 @@ endif
 
 MORE_CFLAGS += -I/opt/vc/include -I/opt/vc/include/interface/vmcs_host/linux -I/opt/vc/include/interface/vcos/pthreads
 
-MORE_CFLAGS += -Isrc -Isrc/od-pandora -Isrc/gp2x -Isrc/threaddep -Isrc/menu -Isrc/include -Isrc/gp2x/menu -Wno-unused -Wno-format  -DGCCCONSTFUNC="__attribute__((const))"
+MORE_CFLAGS += -Isrc -Isrc/od-pandora  -Isrc/threaddep -Isrc/menu -Isrc/include -Wno-unused -Wno-format  -DGCCCONSTFUNC="__attribute__((const))"
 MORE_CFLAGS += -fexceptions -fpermissive
 
 LDFLAGS += -lSDL -lpthread -lm -lz -lSDL_image -lpng -lrt -lxml2 -lFLAC -lmpg123 -ldl
@@ -88,10 +91,10 @@ CXXFLAGS += $(SDL_CFLAGS) $(CPU_FLAGS) $(DEFS) $(MORE_CFLAGS)
 
 
 ifdef GEN_PROFILE
-MORE_CFLAGS += -fprofile-generate=/media/MAINSD/pandora/test -fprofile-arcs
+MORE_CFLAGS += -fprofile-generate=/media/MAINSD/pandora/test -fprofile-arcs -fvpt
 endif
 ifdef USE_PROFILE
-MORE_CFLAGS += -fprofile-use -fbranch-probabilities -fvpt -funroll-loops -fpeel-loops -ftracer -ftree-loop-distribute-patterns
+MORE_CFLAGS += -fprofile-use -fbranch-probabilities -fvpt
 endif
 
 
@@ -122,6 +125,7 @@ OBJS =	\
 	src/fsdb.o \
 	src/fsdb_unix.o \
 	src/fsusage.o \
+	src/gfxboard.o \
 	src/gfxutil.o \
 	src/hardfile.o \
 	src/inputdevice.o \
@@ -231,6 +235,7 @@ endif
 
 ifeq ($(HAVE_GLES_DISPLAY), 1)
 OBJS += src/od-gles/gl.o
+OBJS += src/od-gles/shader_stuff.o
 OBJS += src/od-gles/gl_platform.o
 OBJS += src/od-gles/gles_gfx.o
 MORE_CFLAGS += -I/opt/vc/include/
@@ -249,9 +254,13 @@ endif
 
 ifeq ($(HAVE_NEON), 1)
 	OBJS += src/od-pandora/neon_helper.o
+else
+	OBJS += src/od-pandora/arm_helper.o
 endif
 
+
 OBJS += src/newcpu.o
+OBJS += src/newcpu_common.o
 OBJS += src/readcpu.o
 OBJS += src/cpudefs.o
 OBJS += src/cpustbl.o
@@ -264,7 +273,12 @@ OBJS += src/jit/compemu_fpp.o
 OBJS += src/jit/compemu_support.o
 
 src/od-pandora/neon_helper.o: src/od-pandora/neon_helper.s
-	$(CXX) $(CPU_FLAGS) -Wall -o src/od-pandora/neon_helper.o -c src/od-pandora/neon_helper.s
+	$(CXX) -march=armv7-a -mfpu=neon -Wall -o src/od-pandora/neon_helper.o -c src/od-pandora/neon_helper.s
+
+src/od-pandora/arm_helper.o: src/od-pandora/arm_helper.s
+	$(CXX) -Wall -o src/od-pandora/arm_helper.o -c src/od-pandora/arm_helper.s
+
+
 
 src/trace.o: src/trace.c
 	$(CC) $(MORE_CFLAGS) -c src/trace.c -o src/trace.o

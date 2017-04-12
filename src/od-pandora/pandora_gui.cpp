@@ -33,6 +33,10 @@
 #include <SDL.h>
 #include "td-sdl/thread.h"
 
+#ifdef RASPBERRY
+ #include <linux/kd.h>
+ #include <sys/ioctl.h>
+#endif
 
 int emulating = 0;
 
@@ -560,6 +564,8 @@ void gui_display (int shortcut)
 
 	/* Clear menu garbage at the bottom of the screen */
 	black_screen_now();
+	/* Empty audio buffer */
+	reset_sound();
 	resume_sound();
   blkdev_exitgui();
 
@@ -581,147 +587,22 @@ void moveVertical(int value)
 		changed_prefs.pandora_vertical_offset = 16;
 }
 
+
+extern char keyboard_type;
+
 void gui_handle_events (void)
 {
-  int i;
-
 	Uint8 *keystate = SDL_GetKeyState(NULL);
-	int triggerL = keystate[SDLK_RSHIFT];
-	int triggerR = keystate[SDLK_RCTRL];
 
-
-	if(keystate[SDLK_LCTRL] && keystate[SDLK_LSUPER] && (keystate[SDLK_RSUPER] ||keystate[SDLK_MENU]))
-		uae_reset(0,1);
-
-	// L + R
-	if(triggerL && triggerR)
+	// Strangely in FBCON left window is seen as left alt ??
+	if (keyboard_type == 2) // KEYCODE_FBCON
 	{
-		//up
-		if(keystate[SDLK_UP])
-			moveVertical(1);
-		//down
-		else if(keystate[SDLK_DOWN])
-			moveVertical(-1);
-
-		//1
-		else if(keystate[SDLK_1])
-		{
-			changed_prefs.gfx_size.height = amigaheight_values[0];
-			update_display(&changed_prefs);
-		}
-		//2
-		else if(keystate[SDLK_2])
-		{
-			changed_prefs.gfx_size.height = amigaheight_values[1];
-			update_display(&changed_prefs);
-		}
-		//3
-		else if(keystate[SDLK_3])
-		{
-			changed_prefs.gfx_size.height = amigaheight_values[2];
-			update_display(&changed_prefs);
-		}
-		//4
-		else if(keystate[SDLK_4])
-		{
-			changed_prefs.gfx_size.height = amigaheight_values[3];
-			update_display(&changed_prefs);
-		}
-		//5
-		else if(keystate[SDLK_5])
-		{
-			changed_prefs.gfx_size.height = amigaheight_values[4];
-			update_display(&changed_prefs);
-		}
-		//6
-		else if(keystate[SDLK_6])
-		{
-			changed_prefs.gfx_size.height = amigaheight_values[5];
-			update_display(&changed_prefs);
-		}
-		//9
-		else if(keystate[SDLK_9])
-		{
-			for(i=0; i<AMIGAHEIGHT_COUNT; ++i)
-			{
-			  if(currprefs.gfx_size.height == amigaheight_values[i])
-		    {
-		      if(i > 0)
-		        changed_prefs.gfx_size.height = amigaheight_values[i - 1];
-		      else
-		        changed_prefs.gfx_size.height = amigaheight_values[AMIGAHEIGHT_COUNT - 1];
-		      break;
-		    }
-			}
-			update_display(&changed_prefs);
-		}
-		//0
-		else if(keystate[SDLK_0])
-		{
-			for(i=0; i<AMIGAHEIGHT_COUNT; ++i)
-			{
-			  if(currprefs.gfx_size.height == amigaheight_values[i])
-		    {
-		      if(i < AMIGAHEIGHT_COUNT - 1)
-		        changed_prefs.gfx_size.height = amigaheight_values[i + 1];
-		      else
-		        changed_prefs.gfx_size.height = amigaheight_values[0];
-		      break;
-		    }
-			}
-			update_display(&changed_prefs);
-		}
-		else if(keystate[SDLK_w])
-		{
-			// Change width
-			for(i=0; i<AMIGAWIDTH_COUNT; ++i)
-			{
-			  if(currprefs.gfx_size.width == amigawidth_values[i])
-		    {
-		      if(i < AMIGAWIDTH_COUNT - 1)
-		        changed_prefs.gfx_size.width = amigawidth_values[i + 1];
-		      else
-		        changed_prefs.gfx_size.width = amigawidth_values[0];
-		      break;
-		    }
-			}
-			update_display(&changed_prefs);
-		}
-		// r
-		else if(keystate[SDLK_r])
-		{
-		  // Change resolution (lores/hires)
-		  if(currprefs.gfx_size.width > 600)
-		    changed_prefs.gfx_size.width = currprefs.gfx_size.width / 2;
-		  else
-		    changed_prefs.gfx_size.width = currprefs.gfx_size.width * 2;
-			update_display(&changed_prefs);
-		}
-	}
-
-	else if(triggerL)
+		if(keystate[SDLK_LCTRL] && (keystate[SDLK_LSUPER] || keystate[SDLK_LALT]) && (keystate[SDLK_RSUPER] ||keystate[SDLK_MENU]))
+			uae_reset(0,1);
+	} else
 	{
-		if(keystate[SDLK_c])
-		  currprefs.pandora_customControls = !currprefs.pandora_customControls;
-
-		else if(keystate[SDLK_d])
-			changed_prefs.leds_on_screen = !currprefs.leds_on_screen;
-
-		else if(keystate[SDLK_f])
-			changed_prefs.gfx_framerate ? changed_prefs.gfx_framerate = 0 : changed_prefs.gfx_framerate = 1;
-
-  	else if(keystate[SDLK_s])
-  		savestate_state = STATE_DOSAVE;
-
-	  else if(keystate[SDLK_l])
-  	{
-  		FILE *f=fopen(savestate_fname, "rb");
-  		if(f)
-  		{
-  			fclose(f);
-  			savestate_state = STATE_DORESTORE;
-  		}
-  	}
+		if(keystate[SDLK_LCTRL] && keystate[SDLK_LSUPER] && (keystate[SDLK_RSUPER] ||keystate[SDLK_MENU]))
+			uae_reset(0,1);
 	}
 }
 
@@ -731,31 +612,58 @@ void gui_disk_image_change (int unitnum, const char *name, bool writeprotected)
 
 void gui_led (int led, int on)
 {
+#ifdef RASPBERRY
+   #define LED_ALL   -1         // Define for all LEDs
+   
+   unsigned char kbd_led_status;
+   
+   // Check current prefs/ update if changed
+   if (currprefs.kbd_led_num != changed_prefs.kbd_led_num) currprefs.kbd_led_num = changed_prefs.kbd_led_num;
+   if (currprefs.kbd_led_scr != changed_prefs.kbd_led_scr) currprefs.kbd_led_scr = changed_prefs.kbd_led_scr;
+   if (currprefs.kbd_led_cap != changed_prefs.kbd_led_cap) currprefs.kbd_led_cap = changed_prefs.kbd_led_cap;
+   
+   ioctl(0, KDGETLED, &kbd_led_status);
+   
+   // Handle floppy led status
+   if (led == LED_DF0 || led == LED_DF1 || led == LED_DF2 || led == LED_DF3)
+   { 
+     if (currprefs.kbd_led_num == led || currprefs.kbd_led_num == LED_DFs)
+     {  
+        if (on) kbd_led_status |= LED_NUM; else kbd_led_status &= ~LED_NUM;
+     }
+     if (currprefs.kbd_led_scr == led || currprefs.kbd_led_scr == LED_DFs)
+     {  
+        if (on) kbd_led_status |= LED_SCR; else kbd_led_status &= ~LED_SCR;
+     }
+   }
+   
+   // Handle power, hd/cd led status
+   if (led == LED_POWER || led == LED_HD || led == LED_CD)
+   { 
+     if (currprefs.kbd_led_num == led)
+     {   
+         if (on) kbd_led_status |= LED_NUM; else kbd_led_status &= ~LED_NUM;
+     }
+     if (currprefs.kbd_led_scr == led)
+     {   
+         if (on) kbd_led_status |= LED_SCR; else kbd_led_status &= ~LED_SCR;
+     }
+   }
+  
+  // Handle all LEDs off
+  if (led == LED_ALL) {
+     kbd_led_status &= ~LED_NUM;
+     kbd_led_status &= ~LED_SCR;
+  }
+  ioctl(0, KDSETLED, kbd_led_status);
+#endif
 }
 
 void gui_flicker_led (int led, int unitnum, int status)
 {
-  static int hd_resetcounter;
-
-  switch(led)
-  {
-    case -1: // Reset HD and CD
-      gui_data.hd = 0;
-      break;
-      
-    case LED_POWER:
-      break;
-
-    case LED_HD:
-      if (status == 0) {
-  	    hd_resetcounter--;
-  	    if (hd_resetcounter > 0)
-  	      return;
-      }
-      gui_data.hd = status;
-      hd_resetcounter = 2;
-      break;
-  }
+#ifdef RASPBERRY
+   gui_led(led, status);
+#endif
 }
 
 
@@ -837,17 +745,19 @@ void FilterFiles(std::vector<std::string> *files, const char *filter[])
 bool DevicenameExists(const char *name)
 {
   int i;
-  struct uaedev_config_info *uci;
-    
+  struct uaedev_config_data *uci;
+  struct uaedev_config_info *ci;
+  
   for(i=0; i<MAX_HD_DEVICES; ++i)
   {
     uci = &changed_prefs.mountconfig[i];
-
-    if(uci->devname && uci->devname[0])
+    ci = &uci->ci;
+    
+    if(ci->devname && ci->devname[0])
     {
-      if(!strcmp(uci->devname, name))
+      if(!strcmp(ci->devname, name))
         return true;
-      if(uci->volname != 0 && !strcmp(uci->volname, name))
+      if(ci->volname != 0 && !strcmp(ci->volname, name))
         return true;
     }
   }
@@ -871,13 +781,13 @@ void CreateDefaultDevicename(char *name)
 
 int tweakbootpri (int bp, int ab, int dnm)
 {
-    if (dnm)
-	return -129;
-    if (!ab)
-	return -128;
-    if (bp < -127)
-	bp = -127;
-    return bp;
+  if (dnm)
+  	return BOOTPRI_NOAUTOMOUNT;
+  if (!ab)
+  	return BOOTPRI_NOAUTOBOOT;
+  if (bp < -127)
+  	bp = -127;
+  return bp;
 }
 
 

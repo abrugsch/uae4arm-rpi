@@ -10,7 +10,6 @@ extern int gui_init (void);
 extern int gui_update (void);
 extern void gui_exit (void);
 extern void gui_led (int, int);
-extern void gui_handle_events (void);
 extern void gui_filename (int, const TCHAR *);
 extern void gui_flicker_led (int, int, int);
 extern void gui_disk_image_change (int, const TCHAR *, bool writeprotected);
@@ -25,19 +24,22 @@ extern bool no_gui;
 
 #define LED_CD_ACTIVE 1
 #define LED_CD_ACTIVE2 2
+#define LED_CD_AUDIO 4
 
-#define LED_POWER 0
-#define LED_DF0 1
-#define LED_DF1 2
-#define LED_DF2 3
-#define LED_DF3 4
-#define LED_HD 5
-#define LED_CD 6
-#define LED_FPS 7
-#define LED_CPU 8
-#define LED_SND 9
-#define LED_MD 10
-#define LED_MAX 11
+#define LED_NONE 0
+#define LED_POWER 1
+#define LED_DF0 2
+#define LED_DF1 3
+#define LED_DF2 4
+#define LED_DF3 5
+#define LED_DFs 6         // Define for any DF* access
+#define LED_HD 7
+#define LED_CD 8
+#define LED_FPS 9
+#define LED_CPU 10
+#define LED_SND 11
+#define LED_MD 12
+#define LED_MAX 13
 
 struct gui_info
 {
@@ -49,6 +51,7 @@ struct gui_info
     uae_s8 drive_side;				/* floppy side */
     uae_s8 hd;			          /* harddrive */
     uae_s8 cd;			          /* CD */
+    bool cpu_halted;
     int fps;
     int sndbuf, sndbuf_status;
     TCHAR df[4][256];		    /* inserted image */
@@ -61,7 +64,6 @@ extern struct gui_info gui_data;
 
 extern void fetch_configurationpath (char *out, int size);
 extern void set_configurationpath(char *newpath);
-extern void fetch_rompath (char *out, int size);
 extern void set_rompath(char *newpath);
 extern void fetch_rp9path (char *out, int size);
 extern void fetch_savestatepath(char *out, int size);
@@ -99,12 +101,13 @@ extern const int amigaheight_values[AMIGAHEIGHT_COUNT];
 void notify_user (int msg);
 int translate_message (int msg, TCHAR *out);
 typedef enum {
-    NUMSG_NEEDEXT2, NUMSG_NOROM, NUMSG_NOROMKEY,
-    NUMSG_KSROMCRCERROR, NUMSG_KSROMREADERROR, NUMSG_NOEXTROM,
-    NUMSG_MODRIP_NOTFOUND, NUMSG_MODRIP_FINISHED, NUMSG_MODRIP_SAVE,
-    NUMSG_KS68EC020, NUMSG_KS68020, NUMSG_KS68030,
-    NUMSG_ROMNEED, NUMSG_EXPROMNEED, NUMSG_NOZLIB, NUMSG_STATEHD,
-    NUMSG_NOCAPS, NUMSG_OLDCAPS, NUMSG_KICKREP, NUMSG_KICKREPNO
+  NUMSG_NEEDEXT2, NUMSG_NOROM, NUMSG_NOROMKEY,
+  NUMSG_KSROMCRCERROR, NUMSG_KSROMREADERROR, NUMSG_NOEXTROM,
+  NUMSG_MODRIP_NOTFOUND, NUMSG_MODRIP_FINISHED, NUMSG_MODRIP_SAVE,
+  NUMSG_KS68EC020, NUMSG_KS68020, NUMSG_KS68030,
+  NUMSG_ROMNEED, NUMSG_EXPROMNEED, NUMSG_NOZLIB, NUMSG_STATEHD,
+  NUMSG_NOCAPS, NUMSG_OLDCAPS, NUMSG_KICKREP, NUMSG_KICKREPNO,
+	NUMSG_KS68030PLUS
 } notify_user_msg;
 
 #ifdef WITH_LOGGING

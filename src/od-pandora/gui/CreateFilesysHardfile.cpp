@@ -204,32 +204,32 @@ static void CreateFilesysHardfileLoop(void)
       {
         switch(event.key.keysym.sym)
         {
-          case SDLK_ESCAPE:
+          case VK_ESCAPE:
             dialogFinished = true;
             break;
             
-          case SDLK_UP:
+          case VK_UP:
             if(HandleNavigation(DIRECTION_UP))
               continue; // Don't change value when enter ComboBox -> don't send event to control
             break;
             
-          case SDLK_DOWN:
+          case VK_DOWN:
             if(HandleNavigation(DIRECTION_DOWN))
               continue; // Don't change value when enter ComboBox -> don't send event to control
             break;
 
-          case SDLK_LEFT:
+          case VK_LEFT:
             if(HandleNavigation(DIRECTION_LEFT))
               continue; // Don't change value when enter Slider -> don't send event to control
             break;
             
-          case SDLK_RIGHT:
+          case VK_RIGHT:
             if(HandleNavigation(DIRECTION_RIGHT))
               continue; // Don't change value when enter Slider -> don't send event to control
             break;
 
-          case SDLK_PAGEDOWN:
-          case SDLK_HOME:
+          case VK_X:
+          case VK_A:
             event.key.keysym.sym = SDLK_RETURN;
             gui_input->pushInput(event); // Fire key down
             event.type = SDL_KEYUP;  // and the key up
@@ -256,7 +256,6 @@ static void CreateFilesysHardfileLoop(void)
 
 bool CreateFilesysHardfile(void)
 {
-  struct uaedev_config_info *uci;
   std::string strroot;
   char tmp[32];
   char zero = 0;
@@ -299,12 +298,21 @@ bool CreateFilesysHardfile(void)
     fwrite(&zero, 1, 1, newFile);
     fclose(newFile);
     
-    uci = add_filesys_config(&changed_prefs, -1, (char *) txtDevice->getText().c_str(), 
-      0, (char *) txtPath->getText().c_str(), 0, 
-      0, 32, (size / 1024) + 1, 2, 512, 
-      bp, 0, 0, 0, 0, 0, 0);
-    if (uci)
-    	hardfile_do_disk_change (uci, 1);
+    struct uaedev_config_data *uci;
+  	struct uaedev_config_info ci;
+
+    uci_set_defaults(&ci, false);
+    strcpy(ci.devname, (char *) txtDevice->getText().c_str());
+    strcpy(ci.rootdir, (char *) txtPath->getText().c_str());
+    ci.type = UAEDEV_HDF;
+    ci.surfaces = (size / 1024) + 1;
+    ci.bootpri = bp;
+    
+    uci = add_filesys_config(&changed_prefs, -1, &ci);
+    if (uci) {
+  		struct hardfiledata *hfd = get_hardfile_data (uci->configoffset);
+      hardfile_media_change (hfd, &ci, true, false);
+    }
   }
 
   return dialogResult;

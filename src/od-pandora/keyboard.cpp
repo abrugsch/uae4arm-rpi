@@ -117,7 +117,7 @@ static struct uae_input_device_kbr_default keytrans_amiga_x11[] = {
 	{  87,  INPUTEVENT_KEY_NP_1},
 	{  88,  INPUTEVENT_KEY_NP_2},
 	{  89,  INPUTEVENT_KEY_NP_3},
-	{  104, INPUTEVENT_KEY_ENTER},   // The ENT from keypad..
+	{  104, INPUTEVENT_KEY_ENTER},         // The ENT from keypad..
 
 	{  90,  INPUTEVENT_KEY_NP_0},
 	{  91,  INPUTEVENT_KEY_NP_PERIOD},
@@ -127,9 +127,17 @@ static struct uae_input_device_kbr_default keytrans_amiga_x11[] = {
 	{ 116,  INPUTEVENT_KEY_CURSOR_DOWN},
 	{ 114,  INPUTEVENT_KEY_CURSOR_RIGHT},
 
-	{  133,  INPUTEVENT_KEY_AMIGA_LEFT},   // Left amiga mapped to left Windows
-	{  134,  INPUTEVENT_KEY_AMIGA_RIGHT},  // Right amiga mapped to right windows key.
-	{  135,  INPUTEVENT_KEY_AMIGA_RIGHT},  // Right amiga mapped to Menu key.
+
+	{ 110,  INPUTEVENT_KEY_NP_LPAREN},     // Map home   to left  parent (as fsuae)
+	{ 112,  INPUTEVENT_KEY_NP_RPAREN},     // Map pageup to right parent (as fsuae)
+
+	{ 115,  INPUTEVENT_KEY_HELP},          // Help mapped to End key (as fsuae)
+
+	{ 119,  INPUTEVENT_KEY_DEL},
+
+	{ 133,  INPUTEVENT_KEY_AMIGA_LEFT},   // Left amiga mapped to left Windows
+	{ 134,  INPUTEVENT_KEY_AMIGA_RIGHT},  // Right amiga mapped to right windows key.
+	{ 135,  INPUTEVENT_KEY_AMIGA_RIGHT},  // Right amiga mapped to Menu key.
 	{ -1, 0 }
   };
 
@@ -235,7 +243,7 @@ static struct uae_input_device_kbr_default keytrans_amiga_fbcon[] = {
 	{  87 -8 ,  INPUTEVENT_KEY_NP_1},
 	{  88 -8 ,  INPUTEVENT_KEY_NP_2},
 	{  89 -8 ,  INPUTEVENT_KEY_NP_3},
-	{  104 -8 , INPUTEVENT_KEY_ENTER},   // The ENT from keypad..
+	{  104 -8, INPUTEVENT_KEY_ENTER},         // The ENT from keypad..
 
 	{  90 -8 ,  INPUTEVENT_KEY_NP_0},
 	{  91 -8 ,  INPUTEVENT_KEY_PERIOD},
@@ -246,9 +254,16 @@ static struct uae_input_device_kbr_default keytrans_amiga_fbcon[] = {
 	{ 114 -8,  INPUTEVENT_KEY_CURSOR_RIGHT},
 
 
-	{  133 -8 ,  INPUTEVENT_KEY_AMIGA_LEFT},   // Left amiga mapped to left Windows
-	{  134 -8 ,  INPUTEVENT_KEY_AMIGA_RIGHT},  // Right amiga mapped to right windows key.
-	{  135 -8 ,  INPUTEVENT_KEY_AMIGA_RIGHT},  // Right amiga mapped to Menu key.
+	{ 110 -8,  INPUTEVENT_KEY_NP_LPAREN},     // Map home   to left  parent (as fsuae)
+	{ 112 -8,  INPUTEVENT_KEY_NP_RPAREN},     // Map pageup to right parent (as fsuae)
+
+	{ 115 -8,  INPUTEVENT_KEY_HELP},          // Help mapped to End key (as fsuae)
+
+	{ 119 -8,  INPUTEVENT_KEY_DEL},
+
+	{ 133 -8,  INPUTEVENT_KEY_AMIGA_LEFT},   // Left amiga mapped to left Windows
+	{ 134 -8,  INPUTEVENT_KEY_AMIGA_RIGHT},  // Right amiga mapped to right windows key.
+	{ 135 -8,  INPUTEVENT_KEY_AMIGA_RIGHT},  // Right amiga mapped to Menu key.
 	{ -1, 0 }
   };
 
@@ -276,8 +291,8 @@ static struct uae_input_device_kbr_default keytrans_amiga[] = {
 	{ SDLK_s, INPUTEVENT_KEY_S },
 	{ SDLK_t, INPUTEVENT_KEY_T },
 	{ SDLK_u, INPUTEVENT_KEY_U },
-	{ SDLK_v, INPUTEVENT_KEY_W },
-	{ SDLK_w, INPUTEVENT_KEY_V },
+	{ SDLK_v, INPUTEVENT_KEY_V },
+	{ SDLK_w, INPUTEVENT_KEY_W },
 	{ SDLK_x, INPUTEVENT_KEY_X },
 	{ SDLK_y, INPUTEVENT_KEY_Y },
 	{ SDLK_z, INPUTEVENT_KEY_Z },
@@ -296,7 +311,7 @@ static struct uae_input_device_kbr_default keytrans_amiga[] = {
   { SDLK_BACKSPACE, INPUTEVENT_KEY_BACKSPACE },
 	{ SDLK_TAB, INPUTEVENT_KEY_TAB },
 	{ SDLK_RETURN, INPUTEVENT_KEY_RETURN },
-	{ SDLK_ESCAPE, INPUTEVENT_KEY_ESC },
+	{ VK_ESCAPE, INPUTEVENT_KEY_ESC },
 	{ SDLK_SPACE, INPUTEVENT_KEY_SPACE },
 	{ SDLK_QUOTE, INPUTEVENT_KEY_SINGLEQUOTE },
 	{ SDLK_COMMA, INPUTEVENT_KEY_COMMA },
@@ -371,56 +386,56 @@ int translate_pandora_keys(int symbol, int *modifier)
 #endif
   switch(symbol)
   {
-    case SDLK_UP:
+    case VK_UP:
       if(*modifier == KMOD_RCTRL) { // Right shoulder + dPad -> cursor keys
         *modifier = KMOD_NONE;
         return AK_UP;
       }
       break;
       
-    case SDLK_DOWN:
+    case VK_DOWN:
       if(*modifier == KMOD_RCTRL) { // Right shoulder + dPad -> cursor keys
         *modifier = KMOD_NONE;
         return AK_DN;
       }
       break;
 
-    case SDLK_LEFT:
+    case VK_LEFT:
       if(*modifier == KMOD_RCTRL) { // Right shoulder + dPad -> cursor keys
         *modifier = KMOD_NONE;
         return AK_LF;
       }
       break;
 
-    case SDLK_RIGHT:
+    case VK_RIGHT:
       if(*modifier == KMOD_RCTRL) { // Right shoulder + dPad -> cursor keys
         *modifier = KMOD_NONE;
         return AK_RT;
       }
       break;
 
-    case SDLK_HOME:
+    case VK_A:
       if(*modifier == KMOD_RCTRL) { // Right shoulder + button A -> CTRL
         *modifier = KMOD_NONE;
         return AK_CTRL;
       }
       break;
 
-    case SDLK_END:
+    case VK_B:
       if(*modifier == KMOD_RCTRL) { // Right shoulder + button B -> left ALT
         *modifier = KMOD_NONE;
         return AK_LALT;
       }
       break;
 
-    case SDLK_PAGEDOWN:
+    case VK_X:
       if(*modifier == KMOD_RCTRL) { // Right shoulder + button X -> HELP
         *modifier = KMOD_NONE;
         return AK_HELP;
       }
       break;
 
-    case SDLK_PAGEUP: // button Y -> Space
+    case VK_Y: // button Y -> Space
       *modifier = KMOD_NONE;
       return AK_SPC;
 

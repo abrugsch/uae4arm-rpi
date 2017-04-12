@@ -331,7 +331,7 @@ int create_configfilename(char *dest, char *basename, int fromDir)
 	if(fromDir == 0)
 	{
 		int len = strlen(p) + 1;
-		char filename[len];
+		char filename[MAX_DPATH];
 		strcpy(filename, p);
 		char *pch = &filename[len];
 		while (pch != filename && *pch != '.')
@@ -339,13 +339,13 @@ int create_configfilename(char *dest, char *basename, int fromDir)
 		if (pch)
 		{
 			*pch='\0';
-			snprintf(dest, 300, "%s/conf/%s.uae", start_path_data, filename);
+			snprintf(dest, MAX_DPATH, "%s/conf/%s.uae", start_path_data, filename);
 			return 1;
 		}
 	}
 	else
 	{
-		snprintf(dest, 300, "%s/conf/%s.uae", start_path_data, p);
+		snprintf(dest, MAX_DPATH, "%s/conf/%s.uae", start_path_data, p);
 		return 1;
 	}
 			
@@ -485,16 +485,16 @@ int loadconfig_old(struct uae_prefs *p, const char *orgpath)
 		fscanf(f,"cutRight=%d\n", &dummy);
 		fscanf(f,"customControls=%d\n",&p->pandora_customControls);
 		fscanf(f,"custom_dpad=%d\n",&dummy);
-		fscanf(f,"custom_up=%d\n",&customControlMap[SDLK_UP]);
-		fscanf(f,"custom_down=%d\n",&customControlMap[SDLK_DOWN]);
-		fscanf(f,"custom_left=%d\n",&customControlMap[SDLK_LEFT]);
-		fscanf(f,"custom_right=%d\n",&customControlMap[SDLK_RIGHT]);
-		fscanf(f,"custom_A=%d\n",&customControlMap[SDLK_HOME]);
-		fscanf(f,"custom_B=%d\n",&customControlMap[SDLK_END]);
-		fscanf(f,"custom_X=%d\n",&customControlMap[SDLK_PAGEDOWN]);
-		fscanf(f,"custom_Y=%d\n",&customControlMap[SDLK_PAGEUP]);
-		fscanf(f,"custom_L=%d\n",&customControlMap[SDLK_RSHIFT]);
-		fscanf(f,"custom_R=%d\n",&customControlMap[SDLK_RCTRL]);
+		fscanf(f,"custom_up=%d\n",&customControlMap[VK_UP]);
+		fscanf(f,"custom_down=%d\n",&customControlMap[VK_DOWN]);
+		fscanf(f,"custom_left=%d\n",&customControlMap[VK_LEFT]);
+		fscanf(f,"custom_right=%d\n",&customControlMap[VK_RIGHT]);
+		fscanf(f,"custom_A=%d\n",&customControlMap[VK_A]);
+		fscanf(f,"custom_B=%d\n",&customControlMap[VK_B]);
+		fscanf(f,"custom_X=%d\n",&customControlMap[VK_X]);
+		fscanf(f,"custom_Y=%d\n",&customControlMap[VK_Y]);
+		fscanf(f,"custom_L=%d\n",&customControlMap[VK_L]);
+		fscanf(f,"custom_R=%d\n",&customControlMap[VK_R]);
 		fscanf(f,"cpu=%d\n", &cpu_level);
 		if(cpu_level > 0) // M68000
 		  // Was old format
